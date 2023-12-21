@@ -2,12 +2,13 @@
 #define ZwiftServer_h
 
 #include <stdio.h>
+
 #include "FanController.h"
 #include "RgbLed.h"
 #include "Shared.h"
-#include "pico/cyw43_arch.h"
 #include "lwip/pbuf.h"
 #include "lwip/tcp.h"
+#include "pico/cyw43_arch.h"
 
 #define TCP_PORT 9090
 #define BUF_SIZE 2048
@@ -26,21 +27,23 @@ typedef struct TCP_SERVER_T_ {
 } TCP_SERVER_T;
 
 class ZwiftServer {
-    public:
-        ZwiftServer(ZwiftData *zwiftData, FanController *fanController, RgbLed *statusLed);
-        int init();
-    private:
-        bool tcp_server_open(void *arg);
-        static err_t tcp_server_accept(void *arg, struct tcp_pcb *client_pcb, err_t err);
-        static err_t tcp_server_recv(void *arg, struct tcp_pcb *tpcb, struct pbuf *p, err_t err);
-        static err_t tcp_server_sent(void *arg, struct tcp_pcb *tpcb, u16_t len);
-        static void tcp_server_err(void *arg, err_t err);
-        TCP_SERVER_T *_state;
-        ZwiftData *_zwiftData;
-        FanController *_fanController;
-        RgbLed *_statusLed;
+ public:
+  ZwiftServer(ZwiftData *zwiftData, FanController *fanController,
+              RgbLed *statusLed);
+  int init();
 
+ private:
+  bool tcp_server_open();
+  static err_t tcp_server_accept(void *arg, struct tcp_pcb *client_pcb,
+                                 err_t err);
+  static err_t tcp_server_recv(void *arg, struct tcp_pcb *tpcb, struct pbuf *p,
+                               err_t err);
+  static err_t tcp_server_sent(void *arg, struct tcp_pcb *tpcb, u16_t len);
+  static void tcp_server_err(void *arg, err_t err);
+  TCP_SERVER_T *_state;
+  ZwiftData *_zwiftData;
+  FanController *_fanController;
+  RgbLed *_statusLed;
 };
-
 
 #endif

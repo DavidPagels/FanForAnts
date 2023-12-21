@@ -1,38 +1,43 @@
 .program triac
-
+.define public CYCLE_LEN 10
 
 getNewSetting:
   out x, 8
+  jmp !x zeroWaitSet
 .wrap_target
-  wait 1 pin 1
-  set y, x
-  ; wait for part of half period
+  mov y, x
+  wait 1 pin 0
 waitToTrigger:
-  nop
   jmp y-- waitToTrigger
   set pins 1
   nop ; wait for minimum time
   set pins 0
+  jmp checkNewSetting
+zeroWaitSet:
+  set pins 1
+zeroWait:
+checkNewSetting:
   jmp !OSRE getNewSetting
+  jmp !x zeroWait
 .wrap
 
 % c-sdk {
 #include "hardware/clocks.h"
 #include "hardware/pio.h"
+#include <stdio.h>
 
-static inline void controller_program_init(PIO pio, uint sm, uint offset, uint pin_controller, pio_sm_config *c) {
-    pio_sm_set_consecutive_pindirs(pio, sm, pin_controller, 1, false);
-    pio_gpio_init(pio, pin_controller);
+static inline void triac_program_init(PIO pio, uint sm, uint offset, uint zcPin, uint triggerPin, pio_sm_config *c) {
+    pio_sm_set_pindirs_with_mask(pio, sm, 0x0 | (0x0 << zcPin) | (0x1 << triggerPin), 0x0 | (0x1 << zcPin) | (0x1 << triggerPin));
+    pio_gpio_init(pio, zcPin);
+    pio_gpio_init(pio, triggerPin);
 
-    sm_config_set_in_pins(c, pin_controller);
-    sm_config_set_sideset_pins(c, pin_controller);
-    sm_config_set_jmp_pin(c, pin_controller);
+    sm_config_set_in_pins(c, zcPin);
+    sm_config_set_jmp_pin(c, zcPin);
+    sm_config_set_set_pins(c, triggerPin, 1);
     sm_config_set_out_shift(c, false, true, 8);
-    sm_config_set_in_shift(c, false, true, 8);
 
-    int cyclesPerBit = (controller_T1 + controller_T2) / 4;
-    float frequency = 1000000;
-    float clockDiv = clock_get_hz(clk_sys) / (cyclesPerBit * frequency);
+    float frequency = 41666.;
+    float clockDiv = clock_get_hz(clk_sys) / frequency;
     sm_config_set_clkdiv(c, clockDiv);
 
     pio_sm_init(pio, sm, offset, c);
